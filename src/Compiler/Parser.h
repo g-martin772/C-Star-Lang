@@ -88,7 +88,7 @@ struct Expression {
 };
 
 struct FunctionNode {
-    std::string Identifier;
+    std::string Name;
     std::string ReturnType;
     std::vector<std::string> ParameterTypes;
     std::vector<std::string> Parameters;
@@ -96,12 +96,20 @@ struct FunctionNode {
 };
 
 struct ProgramNode {
-    std::vector<FunctionNode> Functions;
+	~ProgramNode();
+    std::vector<FunctionNode*> Functions;
 };
 
 class Parser {
 public:
-    CompilerResult ConsumeToken(const Token& token);
+	explicit Parser(Lexer& lexer);
+    CompilerResult Parse();
+	void PrintProgramTree();
 private:
+	static bool IsReserved(const std::string& t);
+	static bool IsDataType(const std::string& t);
+
+	Lexer& m_Lexer;
     ProgramNode m_ProgramNode;
+	FunctionNode* m_CurrentFunction = nullptr;
 };

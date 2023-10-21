@@ -1,3 +1,4 @@
+#include <iostream>
 #include "Lexer.h"
 
 Token Lexer::GetNextToken() {
@@ -84,6 +85,7 @@ Token Lexer::GetNextToken() {
 		m_Position++;
 	}
 
+	std::cout << "Token Type: " << Lexer::TokenTypeToString(token.Type) << ", Content: " << token.Content << std::endl;
 	return token;
 }
 

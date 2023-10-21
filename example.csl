@@ -1,5 +1,13 @@
 
-void Main(int argc, char** argv){
+int Add(int x, int y) {
+    return x + y;
+}
+
+int Multiply(int x, int y) {
+    return x * y;
+}
+
+void Main(int argc, char argv) {
     int i = 5 + 5;
     return 0;
 }
