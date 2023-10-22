@@ -22,6 +22,9 @@ enum class ExpressionType {
 };
 
 struct DeclarationExpression {
+	explicit DeclarationExpression(std::string type, std::string identifier)
+		: Identifier(identifier), Type(type) {}
+
     std::string Identifier;
     std::string Type;
 };
@@ -32,6 +35,7 @@ struct AssignmentExpression {
 };
 
 struct DeclarationWithAssignmentExpression {
+	std::string Type;
     std::string Identifier;
     Expression* ValueExpression;
 };
@@ -45,7 +49,7 @@ struct BlockExpression {
 };
 
 struct FunctionCallExpression {
-    std::string FunctionName;
+    std::string Name;
     std::vector<Expression> Arguments;
 };
 
@@ -58,11 +62,13 @@ struct ValueExpression {
 };
 
 struct UnaryOperationExpression {
+	// TODO
     ExpressionType operation;
     Expression* operand;
 };
 
 struct BinaryOperationExpression {
+	// TODO
     ExpressionType operation;
     Expression* leftOperand;
     Expression* rightOperand;
@@ -112,6 +118,10 @@ public:
 private:
 	static bool IsReserved(const std::string& t);
 	static bool IsDataType(const std::string& t);
+	bool IsFunctionName(const std::string& t);
+
+	void PrintBlockExpression(BlockExpression* expression, int indent);
+	void PrintExpression(Expression* expression, int indent);
 
 	Lexer& m_Lexer;
     ProgramNode m_ProgramNode;

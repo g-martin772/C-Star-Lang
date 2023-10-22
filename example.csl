@@ -9,6 +9,10 @@ int Multiply(int x, int y) {
 }
 
 void Main(int argc, char argv) {
+    int x;
+    int y;
     int i = 5 + 5;
+    Add(1, 2);
+    int j = Add(5, 5);
     return 0;
 }
