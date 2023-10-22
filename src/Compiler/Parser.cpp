@@ -87,15 +87,38 @@ CompilerResult Parser::Parse() {
 			if(token.Type != TokenType::CurlyOpen)
 				return ResultType::InvalidSyntax;
 			token = m_Lexer.GetNextToken();
+			m_CurrentBlock = &m_CurrentFunction->Block;
 		}
 
-		// TODO: Parse Expressions
+		// Block Open
+		if(token.Type == TokenType::CurlyOpen) {
+			BlockExpression* newExpression = new BlockExpression(m_CurrentBlock);
+			m_CurrentBlock->Expressions.push_back({
+				ExpressionType::Block,
+				newExpression
+			});
+			m_CurrentBlock = newExpression;
+			continue;
+		}
 
+		// Block Close
 		if(token.Type == TokenType::CurlyClose) {
-			m_ProgramNode.Functions.push_back(m_CurrentFunction);
-			m_CurrentFunction = nullptr;
+			if(m_CurrentBlock == &m_CurrentFunction->Block) {
+				m_ProgramNode.Functions.push_back(m_CurrentFunction);
+				m_CurrentFunction = nullptr;
+				m_CurrentBlock = nullptr;
+				continue;
+			} else {
+				m_CurrentBlock = m_CurrentBlock->Parent;
+				continue;
+			}
 		}
 
+		// Parse Expression
+		if(token.Type == TokenType::Identifier && IsDataType(token.Content)) {
+			std::string type = token.Content;
+
+		}
 	}
 
 
@@ -120,11 +143,22 @@ bool Parser::IsDataType(const std::string &t) {
 	return false;
 }
 
+void PrintBlockExpression(BlockExpression* expression, int indent) {
+	for(int i = 0; i < indent; i++)
+		std::cout << ' ';
+	std::cout << "Block" << std::endl;
+	for(auto& subExpression : expression->Expressions) {
+		if(subExpression.Type == ExpressionType::Block)
+			PrintBlockExpression(reinterpret_cast<BlockExpression*>(subExpression.Data), indent + 2);
+	}
+}
+
 void Parser::PrintProgramTree() {
 	for(FunctionNode* function : m_ProgramNode.Functions) {
 		std::cout << "  ";
 
 		std::cout << "Function: " << function->Name << std::endl;
+		PrintBlockExpression(&function->Block, 4);
 	}
 }
 

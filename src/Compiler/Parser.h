@@ -37,7 +37,11 @@ struct DeclarationWithAssignmentExpression {
 };
 
 struct BlockExpression {
-    std::vector<Expression> Statements;
+	explicit BlockExpression(BlockExpression* parent = nullptr)
+		: Parent(parent) {}
+
+    std::vector<Expression> Expressions;
+	BlockExpression* Parent = nullptr;
 };
 
 struct FunctionCallExpression {
@@ -92,7 +96,7 @@ struct FunctionNode {
     std::string ReturnType;
     std::vector<std::string> ParameterTypes;
     std::vector<std::string> Parameters;
-    std::vector<Expression> Expressions;
+	BlockExpression Block;
 };
 
 struct ProgramNode {
@@ -112,4 +116,5 @@ private:
 	Lexer& m_Lexer;
     ProgramNode m_ProgramNode;
 	FunctionNode* m_CurrentFunction = nullptr;
+	BlockExpression* m_CurrentBlock = nullptr;
 };
