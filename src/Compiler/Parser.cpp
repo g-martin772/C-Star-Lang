@@ -175,6 +175,10 @@ CompilerResult Parser::Parse() {
 				return ResultType::InvalidSyntax;
 			}
 
+			token = m_Lexer.GetNextToken();
+			if(token.Type != TokenType::Semi)
+				return ResultType::InvalidSyntax;
+
 			m_CurrentBlock->Expressions.push_back({
 				ExpressionType::FunctionCall,
 				newExpression
@@ -182,11 +186,78 @@ CompilerResult Parser::Parse() {
 			continue;
 		}
 
-		// TODO: If/Else/While
+		// If
+		if(token.Type == TokenType::Identifier && token.Content == "if") {
+			IfExpression* newExpression = new IfExpression();
 
-		// TODO: Return
+			token = m_Lexer.GetNextToken();
+			if (token.Type != TokenType::ParenOpen)
+				return ResultType::InvalidSyntax;
+
+			// TODO: Get Condition Expression
+			while (token.Type != TokenType::ParenClose)
+				token = m_Lexer.GetNextToken();
+
+			// TODO: Get Body Expression
+
+			m_CurrentBlock->Expressions.push_back({
+				ExpressionType::If,
+				newExpression
+			});
+
+			// Else
+			if(token.Type == TokenType::Identifier && token.Content == "else") {
+				ElseExpression* newExpression = new ElseExpression();
+
+				// TODO: Get Body Expression
+
+				m_CurrentBlock->Expressions.push_back({
+					ExpressionType::If,
+					newExpression
+				});
+			}
+		}
+
+		// While
+		if(token.Type == TokenType::Identifier && token.Content == "while") {
+			WhileExpression* newExpression = new WhileExpression();
+
+			token = m_Lexer.GetNextToken();
+			if (token.Type != TokenType::ParenOpen)
+				return ResultType::InvalidSyntax;
+
+			// TODO: Get Condition Expression
+			while (token.Type != TokenType::ParenClose)
+				token = m_Lexer.GetNextToken();
+
+			token = m_Lexer.GetNextToken();
+			// TODO: Get Body Expression
+
+			m_CurrentBlock->Expressions.push_back({
+				ExpressionType::While,
+				newExpression
+			});
+			continue;
+		}
+
+		// Return
+		if(token.Type == TokenType::Identifier && token.Content == "return") {
+			ReturnExpression* newExpression = new ReturnExpression();
+
+			token = m_Lexer.GetNextToken();
+			if(token.Type != TokenType::Semi) {
+				// TODO: Get ValueExpression!
+			}
+
+			m_CurrentBlock->Expressions.push_back({
+				  ExpressionType::Return,
+				  newExpression
+			});
+			continue;
+		}
 
 		// TODO: Binary and Unary Operations
+
 	} // End of Parse loop
 
 	return ResultType::Success;
@@ -224,7 +295,7 @@ void Parser::PrintExpression(Expression* expression, int indent) {
 		case ExpressionType::Declaration: {
 			Indent(indent + 2);
 			DeclarationExpression* dec = reinterpret_cast<DeclarationExpression*>(expression->Data);
-			std::cout << "type: " << dec->Type << " name: " << dec->Identifier << std::endl;
+			std::cout << "type: " << dec->Type << ", name: " << dec->Identifier << std::endl;
 			break;
 		}
 		case ExpressionType::Assignment:
@@ -232,7 +303,7 @@ void Parser::PrintExpression(Expression* expression, int indent) {
 		case ExpressionType::DeclarationWithAssignment: {
 			Indent(indent + 2);
 			DeclarationWithAssignmentExpression* dec = reinterpret_cast<DeclarationWithAssignmentExpression*>(expression->Data);
-			std::cout << "type: " << dec->Type << " name: " << dec->Identifier << std::endl;
+			std::cout << "type: " << dec->Type << ", name: " << dec->Identifier << std::endl;
 			Indent(indent + 4);
 			std::cout << "value: ";
 			PrintExpression(dec->ValueExpression, 0);
@@ -251,14 +322,45 @@ void Parser::PrintExpression(Expression* expression, int indent) {
 			break;
 		case ExpressionType::BinaryOperation:
 			break;
-		case ExpressionType::Return:
+		case ExpressionType::Return: {
+			Indent(indent + 2);
+			std::cout << "return: " << std::endl;
+
+			ReturnExpression* returnExpression = reinterpret_cast<ReturnExpression*>(expression->Data);
+			if(returnExpression->ValueExpression == nullptr) {
+				Indent(indent + 4);
+				std::cout << "void" << std::endl;
+			} else {
+				PrintExpression(returnExpression->ValueExpression, indent + 4);
+			}
 			break;
-		case ExpressionType::While:
+		}
+		case ExpressionType::While: {
+			Indent(indent + 2);
+			std::cout << "while: " << std::endl;
+
+			WhileExpression* whileExpression = reinterpret_cast<WhileExpression*>(expression->Data);
+			PrintExpression(whileExpression->ConditionExpression, indent + 4);
+			PrintExpression(whileExpression->BodyExpression, indent + 4);
 			break;
-		case ExpressionType::If:
+		}
+		case ExpressionType::If:{
+			Indent(indent + 2);
+			std::cout << "if: " << std::endl;
+
+			IfExpression* ifExpression = reinterpret_cast<IfExpression*>(expression->Data);
+			PrintExpression(ifExpression->ConditionExpression, indent + 4);
+			PrintExpression(ifExpression->BodyExpression, indent + 4);
 			break;
-		case ExpressionType::Else:
+		}
+		case ExpressionType::Else:{
+			Indent(indent + 2);
+			std::cout << "else: " << std::endl;
+
+			ElseExpression* elseExpression = reinterpret_cast<ElseExpression*>(expression->Data);
+			PrintExpression(elseExpression->BodyExpression, indent + 4);
 			break;
+		}
 	}
 }
 

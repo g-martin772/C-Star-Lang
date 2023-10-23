@@ -12,6 +12,11 @@ void Main(int argc, char argv) {
     int x;
     int y;
     int i = 5 + 5;
+    if (i == 10) {
+        x = 5;
+    } else {
+        x = 10;
+    }
     Add(1, 2);
     int j = Add(5, 5);
     return 0;
