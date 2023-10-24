@@ -392,3 +392,51 @@ ProgramNode::~ProgramNode() {
 	for(auto& fn : Functions)
 		delete fn;
 }
+
+BlockExpression::~BlockExpression() {
+	for(auto& exp : Expressions){
+		switch (exp.Type) {
+			case ExpressionType::Declaration:
+				delete reinterpret_cast<DeclarationExpression*>(exp.Data);
+				break;
+			case ExpressionType::Assignment:
+				delete reinterpret_cast<AssignmentExpression*>(exp.Data);
+				break;
+			case ExpressionType::DeclarationWithAssignment:
+				delete reinterpret_cast<DeclarationWithAssignmentExpression*>(exp.Data);
+				break;
+			case ExpressionType::Block:
+				delete reinterpret_cast<BlockExpression*>(exp.Data);
+				break;
+			case ExpressionType::FunctionCall:
+				delete reinterpret_cast<FunctionCallExpression*>(exp.Data);
+				break;
+			case ExpressionType::Value:
+				delete reinterpret_cast<ValueExpression*>(exp.Data);
+				break;
+			case ExpressionType::UnaryOperation:
+				delete reinterpret_cast<UnaryOperationExpression*>(exp.Data);
+				break;
+			case ExpressionType::BinaryOperation:
+				delete reinterpret_cast<BinaryOperationExpression*>(exp.Data);
+				break;
+			case ExpressionType::Return:
+				delete reinterpret_cast<ReturnExpression*>(exp.Data);
+				break;
+			case ExpressionType::While:
+				delete reinterpret_cast<WhileExpression*>(exp.Data);
+				break;
+			case ExpressionType::If:
+				delete reinterpret_cast<IfExpression*>(exp.Data);
+				break;
+			case ExpressionType::Else:
+				delete reinterpret_cast<ElseExpression*>(exp.Data);
+				break;
+		}
+	}
+}
+
+ValueExpression::~ValueExpression() {
+	if(FunctionCall != nullptr)
+		delete FunctionCall;
+}

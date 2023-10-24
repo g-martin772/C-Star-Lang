@@ -44,6 +44,8 @@ struct BlockExpression {
 	explicit BlockExpression(BlockExpression* parent = nullptr)
 		: Parent(parent) {}
 
+	~BlockExpression();
+
     std::vector<Expression> Expressions;
 	BlockExpression* Parent = nullptr;
 };
@@ -54,11 +56,10 @@ struct FunctionCallExpression {
 };
 
 struct ValueExpression {
-    union {
-        std::string StringLiteral;
-        long ValueLiteral;
-        Expression* FunctionCall;
-    };
+	~ValueExpression();
+	std::string StringLiteral;
+	long ValueLiteral;
+	FunctionCallExpression* FunctionCall;
 };
 
 struct UnaryOperationExpression {
