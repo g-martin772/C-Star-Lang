@@ -34,7 +34,7 @@ struct AssignmentExpression {
     Expression* ValueExpression;
 };
 
-struct DeclarationWithAssignmentExpression {
+struct InitializationExpression {
 	std::string Type;
     std::string Identifier;
     Expression* ValueExpression;
@@ -117,6 +117,11 @@ public:
     CompilerResult Parse();
 	void PrintProgramTree();
 private:
+	Expression* ParseExpression();
+	bool ParseFunctionHeader();
+	void ParseBlockOpen();
+	void ParseBlockClose();
+
 	static bool IsReserved(const std::string& t);
 	static bool IsDataType(const std::string& t);
 	bool IsFunctionName(const std::string& t);
@@ -125,6 +130,7 @@ private:
 	void PrintExpression(Expression* expression, int indent);
 
 	Lexer& m_Lexer;
+	Token m_Token;
     ProgramNode m_ProgramNode;
 	FunctionNode* m_CurrentFunction = nullptr;
 	BlockExpression* m_CurrentBlock = nullptr;
