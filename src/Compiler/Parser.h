@@ -76,7 +76,7 @@ struct BinaryOperationExpression {
 };
 
 struct ReturnExpression {
-    Expression* ValueExpression;
+    ValueExpression* Value;
 };
 
 struct WhileExpression {
@@ -117,10 +117,15 @@ public:
     CompilerResult Parse();
 	void PrintProgramTree();
 private:
-	Expression* ParseExpression();
+	bool ParseFunction();
 	bool ParseFunctionHeader();
-	void ParseBlockOpen();
-	void ParseBlockClose();
+	bool ParseDeclaration();
+	bool ParseFunctionCall();
+	bool ParseIfExpression();
+	bool ParseWhileExpression();
+	bool ParseReturnExpression();
+	ValueExpression* GetValueExpression(bool const = false);
+
 
 	static bool IsReserved(const std::string& t);
 	static bool IsDataType(const std::string& t);

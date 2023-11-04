@@ -3,14 +3,7 @@
 #include "IO/File.h"
 #include "Compiler/Parser.h"
 
-int main(int argc, char** argv) {
-
-	std::string code = File::ReadTextFile("../example.csl");
-
-	Lexer lexer(code);
-    Parser parser(lexer);
-	CompilerResult result = parser.Parse();
-
+void PrintResult(Parser &parser, const CompilerResult &result) {
 	switch (result.Type) {
 		case ResultType::Success:
 			std::cout << "Success" << std::endl;
@@ -26,8 +19,19 @@ int main(int argc, char** argv) {
 			std::cout << "Internal Compiler Error" << std::endl;
 			break;
 	}
+}
 
-    return 0;
+int main(int argc, char** argv) {
+
+	std::string code = File::ReadTextFile("../example.csl");
+
+	Lexer lexer(code);
+    Parser parser(lexer);
+	CompilerResult result = parser.Parse();
+
+	PrintResult(parser, result);
+
+	return 0;
 }
 
 

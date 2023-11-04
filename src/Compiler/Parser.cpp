@@ -51,7 +51,7 @@ CompilerResult Parser::Parse() {
 				return ResultType::InvalidSyntax;
 		}
 
-		ParseExpression();
+		ParseFunction();
 	}
 
 	return ResultType::Success;
@@ -121,11 +121,12 @@ void Parser::PrintExpression(Expression* expression, int indent) {
 			std::cout << "return: " << std::endl;
 
 			ReturnExpression* returnExpression = reinterpret_cast<ReturnExpression*>(expression->Data);
-			if(returnExpression->ValueExpression == nullptr) {
+			if(returnExpression->Value == nullptr) {
 				Indent(indent + 4);
 				std::cout << "void" << std::endl;
 			} else {
-				PrintExpression(returnExpression->ValueExpression, indent + 4);
+				Expression ex = Expression{ExpressionType::Return, (void*)returnExpression->Value};
+				PrintExpression(&ex, indent + 4);
 			}
 			break;
 		}
@@ -182,162 +183,63 @@ bool Parser::IsFunctionName(const std::string &t) {
 	return false;
 }
 
-Expression* Parser::ParseExpression() {
-	// Block Open
-	if(m_Token.Type == TokenType::CurlyOpen) {
-		ParseBlockOpen();
-		return nullptr;
-	}
-
-	// Block Close
-	if(m_Token.Type == TokenType::CurlyClose) {
-		ParseBlockClose();
-		return nullptr;
-	}
-
-	// Parse Expression
-	if(m_Token.Type == TokenType::Identifier && IsDataType(m_Token.Content)) {
-		std::string type = m_Token.Content;
-		m_Token = m_Lexer.GetNextToken();
-		if(m_Token.Type != TokenType::Identifier)
-			return nullptr;
-		if(IsReserved(m_Token.Content) || IsDataType(m_Token.Content) || IsFunctionName(m_Token.Content))
-			return nullptr;
-		std::string name = m_Token.Content;
-		m_Token = m_Lexer.GetNextToken();
-		if(m_Token.Type == TokenType::Semi) {
-			// Variable Declaration
-			DeclarationExpression* newExpression = new DeclarationExpression(type, name);
-			m_CurrentBlock->Expressions.push_back({ExpressionType::Declaration,newExpression});
-			return nullptr;;
-		} else if(m_Token.Type == TokenType::Equal) {
-			// Variable Initialization
-			InitializationExpression* newExpression = new InitializationExpression();
-			newExpression->Identifier = name;
-			newExpression->Type = type;
-
-			// TODO: Get ValueExpression!
-
-			m_CurrentBlock->Expressions.push_back({ExpressionType::DeclarationWithAssignment,newExpression});
-			return nullptr;;
-		} else {
-			return nullptr;
+bool Parser::ParseFunction() {
+	while (true) {
+		// Block Open
+		if(m_Token.Type == TokenType::CurlyOpen) {
+			BlockExpression* newExpression = new BlockExpression(m_CurrentBlock);
+			m_CurrentBlock->Expressions.push_back({ExpressionType::Block, newExpression});
+			m_CurrentBlock = newExpression;
+			continue;
 		}
-	}
 
-	// TODO: Keep track of variables xD and assignment
-
-	// FunctionCalls
-	if(m_Token.Type == TokenType::Identifier && IsFunctionName(m_Token.Content)) {
-		std::string name = m_Token.Content;
-		m_Token = m_Lexer.GetNextToken();
-		if(m_Token.Type != TokenType::ParenOpen)
-			return nullptr;
-		FunctionCallExpression* newExpression = new FunctionCallExpression();
-		newExpression->Name = name;
-
-		// Parameters
-		while (true) {
-			m_Token = m_Lexer.GetNextToken();
-
-			// TODO: Get ValueExpression!
-
-			m_Token = m_Lexer.GetNextToken();
-			if(m_Token.Type == TokenType::Comma)
+		// Block Close
+		if(m_Token.Type == TokenType::CurlyClose) {
+			if(m_CurrentBlock == &m_CurrentFunction->Block) {
+				m_ProgramNode.Functions.push_back(m_CurrentFunction);
+				m_CurrentFunction = nullptr;
+				m_CurrentBlock = nullptr;
+				return true;
+			} else {
+				m_CurrentBlock = m_CurrentBlock->Parent;
 				continue;
-			if(m_Token.Type == TokenType::ParenClose)
-				break;
-			return nullptr;
+			}
 		}
 
-		m_Token = m_Lexer.GetNextToken();
-		if(m_Token.Type != TokenType::Semi)
-			return nullptr;
-
-		m_CurrentBlock->Expressions.push_back({ExpressionType::FunctionCall,newExpression});
-		return nullptr;;
-	}
-
-	// If
-	if(m_Token.Type == TokenType::Identifier && m_Token.Content == "if") {
-		IfExpression* newExpression = new IfExpression();
-
-		m_Token = m_Lexer.GetNextToken();
-		if (m_Token.Type != TokenType::ParenOpen)
-			return nullptr;
-
-		// TODO: Get Condition Expression
-		while (m_Token.Type != TokenType::ParenClose)
-			m_Token = m_Lexer.GetNextToken();
-
-		// TODO: Get Body Expression
-
-		m_CurrentBlock->Expressions.push_back({ExpressionType::If,newExpression});
-
-		// Else
-		if(m_Token.Type == TokenType::Identifier && m_Token.Content == "else") {
-			ElseExpression* newExpression = new ElseExpression();
-
-			// TODO: Get Body Expression
-
-			m_CurrentBlock->Expressions.push_back({ExpressionType::If,newExpression});
-		}
-	}
-
-	// While
-	if(m_Token.Type == TokenType::Identifier && m_Token.Content == "while") {
-		WhileExpression* newExpression = new WhileExpression();
-
-		m_Token = m_Lexer.GetNextToken();
-		if (m_Token.Type != TokenType::ParenOpen)
-			return nullptr;
-
-		// TODO: Get Condition Expression
-		while (m_Token.Type != TokenType::ParenClose)
-			m_Token = m_Lexer.GetNextToken();
-
-		m_Token = m_Lexer.GetNextToken();
-		// TODO: Get Body Expression
-
-		m_CurrentBlock->Expressions.push_back({ExpressionType::While,newExpression});
-		return nullptr;;
-	}
-
-	// Return
-	if(m_Token.Type == TokenType::Identifier && m_Token.Content == "return") {
-		ReturnExpression* newExpression = new ReturnExpression();
-
-		m_Token = m_Lexer.GetNextToken();
-		if(m_Token.Type != TokenType::Semi) {
-			// TODO: Get ValueExpression!
+		// Parse Declaration
+		if(m_Token.Type == TokenType::Identifier && IsDataType(m_Token.Content)) {
+			if(ParseDeclaration())
+				continue;
 		}
 
-		m_CurrentBlock->Expressions.push_back({ExpressionType::Return,newExpression});
-		return nullptr;
+		// FunctionCalls
+		if(m_Token.Type == TokenType::Identifier && IsFunctionName(m_Token.Content)) {
+			if(ParseFunctionCall())
+				continue;
+		}
+
+		// If
+		if(m_Token.Type == TokenType::Identifier && m_Token.Content == "if") {
+			if(ParseIfExpression())
+				continue;
+		}
+
+		// While
+		if(m_Token.Type == TokenType::Identifier && m_Token.Content == "while") {
+			if(ParseWhileExpression())
+				continue;
+		}
+
+		// Return
+		if(m_Token.Type == TokenType::Identifier && m_Token.Content == "return") {
+			if(ParseReturnExpression())
+				continue;
+		}
+
+		// TODO: Binary and Unary Operations
+
+		return false;
 	}
-
-	// TODO: Binary and Unary Operations
-
-	return nullptr;
-}
-
-void Parser::ParseBlockClose() {
-	if(m_CurrentBlock == &m_CurrentFunction->Block) {
-		m_ProgramNode.Functions.push_back(m_CurrentFunction);
-		m_CurrentFunction = nullptr;
-		m_CurrentBlock = nullptr;
-		return;
-	} else {
-		m_CurrentBlock = m_CurrentBlock->Parent;
-		return;
-	}
-}
-
-void Parser::ParseBlockOpen() {
-	BlockExpression* newExpression = new BlockExpression(m_CurrentBlock);
-	m_CurrentBlock->Expressions.push_back({ExpressionType::Block, newExpression});
-	m_CurrentBlock = newExpression;
-	return;
 }
 
 bool Parser::ParseFunctionHeader() {
@@ -385,6 +287,129 @@ bool Parser::ParseFunctionHeader() {
 	m_CurrentBlock = &m_CurrentFunction->Block;
 
 	return true;
+}
+
+bool Parser::ParseDeclaration() {
+	std::string type = m_Token.Content;
+	m_Token = m_Lexer.GetNextToken();
+	if(m_Token.Type != TokenType::Identifier)
+		return false;
+	if(IsReserved(m_Token.Content) || IsDataType(m_Token.Content) || IsFunctionName(m_Token.Content))
+		return false;
+	std::string name = m_Token.Content;
+	m_Token = m_Lexer.GetNextToken();
+
+	if(m_Token.Type == TokenType::Semi) {
+		// Variable Declaration
+		DeclarationExpression* newExpression = new DeclarationExpression(type, name);
+		m_CurrentBlock->Expressions.push_back({ExpressionType::Declaration,newExpression});
+		return true;
+	}
+
+	if(m_Token.Type == TokenType::Equal) {
+		// Variable Initialization
+		InitializationExpression* newExpression = new InitializationExpression();
+		newExpression->Identifier = name;
+		newExpression->Type = type;
+
+		// TODO: Get Value!
+
+		m_CurrentBlock->Expressions.push_back({ExpressionType::DeclarationWithAssignment,newExpression});
+		return true;
+	}
+
+	return false;
+}
+
+bool Parser::ParseFunctionCall() {
+	std::string name = m_Token.Content;
+	m_Token = m_Lexer.GetNextToken();
+	if(m_Token.Type != TokenType::ParenOpen)
+		return false;
+	FunctionCallExpression* newExpression = new FunctionCallExpression();
+	newExpression->Name = name;
+
+	// Parameters
+	while (true) {
+		m_Token = m_Lexer.GetNextToken();
+
+		// TODO: Get Value!
+
+		m_Token = m_Lexer.GetNextToken();
+		if(m_Token.Type == TokenType::Comma)
+			continue;
+		if(m_Token.Type == TokenType::ParenClose)
+			break;
+		return false;
+	}
+
+	m_Token = m_Lexer.GetNextToken();
+	if(m_Token.Type != TokenType::Semi)
+		return false;
+
+	m_CurrentBlock->Expressions.push_back({ExpressionType::FunctionCall,newExpression});
+	return true;
+}
+
+bool Parser::ParseIfExpression() {
+	IfExpression* newExpression = new IfExpression();
+
+	m_Token = m_Lexer.GetNextToken();
+	if (m_Token.Type != TokenType::ParenOpen)
+		return false;
+
+	// TODO: Get Condition Expression
+	while (m_Token.Type != TokenType::ParenClose)
+		m_Token = m_Lexer.GetNextToken();
+
+	// TODO: Get Body Expression
+
+	m_CurrentBlock->Expressions.push_back({ExpressionType::If,newExpression});
+
+	// Else
+	if(m_Token.Type == TokenType::Identifier && m_Token.Content == "else") {
+		ElseExpression* newExpression = new ElseExpression();
+
+		// TODO: Get Body Expression
+
+		m_CurrentBlock->Expressions.push_back({ExpressionType::If,newExpression});
+	}
+
+	return true;
+}
+
+bool Parser::ParseWhileExpression() {
+	WhileExpression* newExpression = new WhileExpression();
+
+	m_Token = m_Lexer.GetNextToken();
+	if (m_Token.Type != TokenType::ParenOpen)
+		return false;
+
+	// TODO: Get Condition Expression
+	while (m_Token.Type != TokenType::ParenClose)
+		m_Token = m_Lexer.GetNextToken();
+
+	m_Token = m_Lexer.GetNextToken();
+	// TODO: Get Body Expression
+
+	m_CurrentBlock->Expressions.push_back({ExpressionType::While,newExpression});
+	return true;
+}
+
+bool Parser::ParseReturnExpression() {
+	ReturnExpression* newExpression = new ReturnExpression();
+
+	m_Token = m_Lexer.GetNextToken();
+	if(m_Token.Type != TokenType::Semi) {
+		newExpression->Value = GetValueExpression();
+	}
+
+	m_CurrentBlock->Expressions.push_back({ExpressionType::Return,newExpression});
+	return true;
+}
+
+ValueExpression *Parser::GetValueExpression(const bool) {
+	return nullptr;
 }
 
 ProgramNode::~ProgramNode() {
