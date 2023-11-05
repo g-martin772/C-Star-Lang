@@ -38,7 +38,9 @@ class Lexer {
 public:
 	explicit Lexer(std::string  input) : m_Input(std::move(input)), m_Position(0) {}
 
-	Token GetNextToken();
+	Token Consume();
+	Token Peek(int offset = 1);
+	Token At(int pos);
     static std::string TokenTypeToString(TokenType type);
 private:
 	std::string m_Input;

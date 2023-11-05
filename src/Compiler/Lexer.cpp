@@ -1,92 +1,15 @@
 #include <iostream>
 #include "Lexer.h"
 
-Token Lexer::GetNextToken() {
-	Token token;
-	if (m_Position >= m_Input.length()) {
-		token.Type = TokenType::Invalid;
-		return token;
-	}
+Token Lexer::Consume() {
+	Token t = At(m_Position);
+	m_Position++;
+	std::cout << "Token Type: " << Lexer::TokenTypeToString(t.Type) << ", Content: " << t.Content << std::endl;
+	return t;
+}
 
-	char currentChar = m_Input[m_Position];
-
-	if (std::isspace(currentChar)) {
-		SkipWhitespace();
-		return GetNextToken();
-	}
-
-	if (std::isalpha(currentChar)) {
-		token.Type = TokenType::Identifier;
-		token.Content = GetIdentifier();
-	} else if (isdigit(currentChar)) {
-		token.Type = TokenType::IntLit;
-		token.Content = GetNumber();
-	} else if (currentChar == '"') {
-		token.Type = TokenType::StringLit;
-		token.Content = GetString();
-	} else if (currentChar == ';') {
-		token.Type = TokenType::Semi;
-		m_Position++;
-	} else if (currentChar == '{') {
-        token.Type = TokenType::CurlyOpen;
-        m_Position++;
-    } else if (currentChar == '}') {
-        token.Type = TokenType::CurlyClose;
-        m_Position++;
-    } else if (currentChar == '(') {
-        token.Type = TokenType::ParenOpen;
-        m_Position++;
-    } else if (currentChar == ')') {
-        token.Type = TokenType::ParenClose;
-        m_Position++;
-    } else if (currentChar == '[') {
-        token.Type = TokenType::SquareOpen;
-        m_Position++;
-    } else if (currentChar == ']') {
-        token.Type = TokenType::SquareClose;
-        m_Position++;
-    } else if (currentChar == ',') {
-        token.Type = TokenType::Comma;
-        m_Position++;
-    } else if (currentChar == '+') {
-        token.Type = TokenType::Plus;
-        m_Position++;
-    } else if (currentChar == '-') {
-        token.Type = TokenType::Minus;
-        m_Position++;
-    } else if (currentChar == '*') {
-        token.Type = TokenType::Star;
-        m_Position++;
-    } else if (currentChar == '/') {
-        token.Type = TokenType::Slash;
-        m_Position++;
-    } else if (currentChar == '%') {
-        token.Type = TokenType::Percent;
-        m_Position++;
-    } else if (currentChar == '=') {
-        token.Type = TokenType::Equal;
-        m_Position++;
-    } else if (currentChar == '>') {
-        token.Type = TokenType::Greater;
-        m_Position++;
-    } else if (currentChar == '<') {
-        token.Type = TokenType::Less;
-        m_Position++;
-    } else if (currentChar == '!') {
-        token.Type = TokenType::Exclamation;
-        m_Position++;
-    } else if (currentChar == '&') {
-        token.Type = TokenType::Ampersand;
-        m_Position++;
-    } else if (currentChar == '|') {
-        token.Type = TokenType::Pipe;
-        m_Position++;
-    } else {
-		m_Position++;
-	}
-
-	std::cout << "Token Type: " << Lexer::TokenTypeToString(token.Type) << ", Content: " << token.Content << std::endl;
-	return token;
+Token Lexer::Peek(int offset) {
+	return At(m_Position + offset);
 }
 
 void Lexer::SkipWhitespace() {
@@ -148,6 +71,94 @@ std::string Lexer::TokenTypeToString(TokenType type) {
         case TokenType::Exclamation: return "Exclamation";
         case TokenType::Ampersand: return "Ampersand";
         case TokenType::Pipe: return "Pipe";
-        default: return "Unknown"; // Handle unknown enum values
+        default: return "Unknown";
     }
+}
+
+Token Lexer::At(int pos) {
+	Token token;
+
+	acquireChar:
+
+	if (pos >= m_Input.length()) {
+		token.Type = TokenType::Invalid;
+		return token;
+	}
+
+	char currentChar = m_Input[pos];
+
+	if (std::isspace(currentChar)) {
+		SkipWhitespace();
+		goto acquireChar;
+	}
+
+	if (std::isalpha(currentChar)) {
+		token.Type = TokenType::Identifier;
+		token.Content = GetIdentifier();
+	} else if (isdigit(currentChar)) {
+		token.Type = TokenType::IntLit;
+		token.Content = GetNumber();
+	} else if (currentChar == '"') {
+		token.Type = TokenType::StringLit;
+		token.Content = GetString();
+	} else if (currentChar == ';') {
+		token.Type = TokenType::Semi;
+		token.Content = ";";
+	} else if (currentChar == '{') {
+		token.Type = TokenType::CurlyOpen;
+		token.Content = "{";
+	} else if (currentChar == '}') {
+		token.Type = TokenType::CurlyClose;
+		token.Content = "}";
+	} else if (currentChar == '(') {
+		token.Type = TokenType::ParenOpen;
+		token.Content = "(";
+	} else if (currentChar == ')') {
+		token.Type = TokenType::ParenClose;
+		token.Content = ")";
+	} else if (currentChar == '[') {
+		token.Type = TokenType::SquareOpen;
+		token.Content = "[";
+	} else if (currentChar == ']') {
+		token.Type = TokenType::SquareClose;
+		token.Content = "]";
+	} else if (currentChar == ',') {
+		token.Type = TokenType::Comma;
+		token.Content = ",";
+	} else if (currentChar == '+') {
+		token.Type = TokenType::Plus;
+		token.Content = "+";
+	} else if (currentChar == '-') {
+		token.Type = TokenType::Minus;
+		token.Content = "-";
+	} else if (currentChar == '*') {
+		token.Type = TokenType::Star;
+		token.Content = "*";
+	} else if (currentChar == '/') {
+		token.Type = TokenType::Slash;
+		token.Content = "/";
+	} else if (currentChar == '%') {
+		token.Type = TokenType::Percent;
+		token.Content = "%";
+	} else if (currentChar == '=') {
+		token.Type = TokenType::Equal;
+		token.Content = "=";
+	} else if (currentChar == '>') {
+		token.Type = TokenType::Greater;
+		token.Content = ">";
+	} else if (currentChar == '<') {
+		token.Type = TokenType::Less;
+		token.Content = "<";
+	} else if (currentChar == '!') {
+		token.Type = TokenType::Exclamation;
+		token.Content = "!";
+	} else if (currentChar == '&') {
+		token.Type = TokenType::Ampersand;
+		token.Content = "&";
+	} else if (currentChar == '|') {
+		token.Type = TokenType::Pipe;
+		token.Content = "|";
+	}
+
+	return token;
 }

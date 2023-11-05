@@ -38,7 +38,7 @@ Parser::Parser(Lexer& lexer) : m_Lexer(lexer) {
 CompilerResult Parser::Parse() {
 	bool parsing = true;
 	while(parsing) {
-		m_Token = m_Lexer.GetNextToken();
+		m_Token = m_Lexer.Consume();
 
 		if(m_Token.Type == TokenType::Invalid) {
 			parsing = false;
@@ -251,7 +251,7 @@ bool Parser::ParseFunctionHeader() {
 	m_CurrentFunction->ReturnType = m_Token.Content;
 
 	// Name
-	m_Token = m_Lexer.GetNextToken();
+	m_Token = m_Lexer.Consume();
 	if (m_Token.Type != TokenType::Identifier)
 		return false;
 	if (IsReserved(m_Token.Content))
@@ -259,19 +259,19 @@ bool Parser::ParseFunctionHeader() {
 	m_CurrentFunction->Name = m_Token.Content;
 
 	// Parameters
-	m_Token = m_Lexer.GetNextToken();
+	m_Token = m_Lexer.Consume();
 	if (m_Token.Type != TokenType::ParenOpen)
 		return false;
 	while (true) {
-		m_Token = m_Lexer.GetNextToken();
+		m_Token = m_Lexer.Consume();
 		if (m_Token.Type != TokenType::Identifier || !IsDataType(m_Token.Content))
 			return false;
 		m_CurrentFunction->ParameterTypes.push_back(m_Token.Content);
-		m_Token = m_Lexer.GetNextToken();
+		m_Token = m_Lexer.Consume();
 		if (m_Token.Type != TokenType::Identifier || IsDataType(m_Token.Content) || IsReserved(m_Token.Content))
 			return false;
 		m_CurrentFunction->Parameters.push_back(m_Token.Content);
-		m_Token = m_Lexer.GetNextToken();
+		m_Token = m_Lexer.Consume();
 		if (m_Token.Type == TokenType::Comma)
 			continue;
 		if (m_Token.Type == TokenType::ParenClose)
@@ -280,10 +280,10 @@ bool Parser::ParseFunctionHeader() {
 	}
 
 	// Block Open
-	m_Token = m_Lexer.GetNextToken();
+	m_Token = m_Lexer.Consume();
 	if(m_Token.Type != TokenType::CurlyOpen)
 		return false;
-	m_Token = m_Lexer.GetNextToken();
+	m_Token = m_Lexer.Consume();
 	m_CurrentBlock = &m_CurrentFunction->Block;
 
 	return true;
@@ -291,13 +291,13 @@ bool Parser::ParseFunctionHeader() {
 
 bool Parser::ParseDeclaration() {
 	std::string type = m_Token.Content;
-	m_Token = m_Lexer.GetNextToken();
+	m_Token = m_Lexer.Consume();
 	if(m_Token.Type != TokenType::Identifier)
 		return false;
 	if(IsReserved(m_Token.Content) || IsDataType(m_Token.Content) || IsFunctionName(m_Token.Content))
 		return false;
 	std::string name = m_Token.Content;
-	m_Token = m_Lexer.GetNextToken();
+	m_Token = m_Lexer.Consume();
 
 	if(m_Token.Type == TokenType::Semi) {
 		// Variable Declaration
@@ -321,46 +321,37 @@ bool Parser::ParseDeclaration() {
 	return false;
 }
 
-bool Parser::ParseFunctionCall() {
+FunctionCallExpression* Parser::ParseFunctionCall() {
 	std::string name = m_Token.Content;
-	m_Token = m_Lexer.GetNextToken();
+	m_Token = m_Lexer.Consume();
 	if(m_Token.Type != TokenType::ParenOpen)
-		return false;
+		return nullptr;
 	FunctionCallExpression* newExpression = new FunctionCallExpression();
 	newExpression->Name = name;
 
 	// Parameters
 	while (true) {
-		m_Token = m_Lexer.GetNextToken();
-
-		// TODO: Get Value!
-
-		m_Token = m_Lexer.GetNextToken();
+		newExpression->Arguments.push_back(GetValueExpression());
 		if(m_Token.Type == TokenType::Comma)
 			continue;
 		if(m_Token.Type == TokenType::ParenClose)
 			break;
-		return false;
+		return nullptr;
 	}
 
-	m_Token = m_Lexer.GetNextToken();
-	if(m_Token.Type != TokenType::Semi)
-		return false;
-
-	m_CurrentBlock->Expressions.push_back({ExpressionType::FunctionCall,newExpression});
-	return true;
+	return newExpression;
 }
 
 bool Parser::ParseIfExpression() {
 	IfExpression* newExpression = new IfExpression();
 
-	m_Token = m_Lexer.GetNextToken();
+	m_Token = m_Lexer.Consume();
 	if (m_Token.Type != TokenType::ParenOpen)
 		return false;
 
 	// TODO: Get Condition Expression
 	while (m_Token.Type != TokenType::ParenClose)
-		m_Token = m_Lexer.GetNextToken();
+		m_Token = m_Lexer.Consume();
 
 	// TODO: Get Body Expression
 
@@ -381,15 +372,15 @@ bool Parser::ParseIfExpression() {
 bool Parser::ParseWhileExpression() {
 	WhileExpression* newExpression = new WhileExpression();
 
-	m_Token = m_Lexer.GetNextToken();
+	m_Token = m_Lexer.Consume();
 	if (m_Token.Type != TokenType::ParenOpen)
 		return false;
 
 	// TODO: Get Condition Expression
 	while (m_Token.Type != TokenType::ParenClose)
-		m_Token = m_Lexer.GetNextToken();
+		m_Token = m_Lexer.Consume();
 
-	m_Token = m_Lexer.GetNextToken();
+	m_Token = m_Lexer.Consume();
 	// TODO: Get Body Expression
 
 	m_CurrentBlock->Expressions.push_back({ExpressionType::While,newExpression});
@@ -399,7 +390,7 @@ bool Parser::ParseWhileExpression() {
 bool Parser::ParseReturnExpression() {
 	ReturnExpression* newExpression = new ReturnExpression();
 
-	m_Token = m_Lexer.GetNextToken();
+	m_Token = m_Lexer.Consume();
 	if(m_Token.Type != TokenType::Semi) {
 		newExpression->Value = GetValueExpression();
 	}
@@ -408,8 +399,71 @@ bool Parser::ParseReturnExpression() {
 	return true;
 }
 
-ValueExpression *Parser::GetValueExpression(const bool) {
+ValueExpression *Parser::GetValueExpression() {
+	m_Token = m_Lexer.Consume();
+
+	if (m_Token.Type == TokenType::Semi || m_Token.Type == TokenType::Invalid)
+		return nullptr;
+
+	m_Token = m_Lexer.Consume();
+	Token t2 = m_Token;
+
+	if (m_Token.Type == TokenType::Identifier && !IsOperator(m_Lexer.Peek().Content) &&
+			IsDelimiter(m_Lexer.Peek().Content)) {
+		// Functional
+		if (IsFunctionName(m_Token.Content)) {
+			ValueExpression* valueExpr = new ValueExpression();
+			valueExpr->Type = ValueExpressionType::FunctionCall;
+			valueExpr->FunctionCall = ParseFunctionCall();
+			return valueExpr;
+		}
+		// Variable
+		ValueExpression* valueExpr = new ValueExpression();
+		valueExpr->Type = ValueExpressionType::Variable;
+		valueExpr->VariableName = m_Token.Content;
+		return valueExpr;
+	} else if (m_Token.Type == TokenType::IntLit) {
+		ValueExpression* valueExpr = new ValueExpression();
+		valueExpr->Type = ValueExpressionType::IntLiteral;
+		valueExpr->ValueLiteral = std::stol(m_Token.Content);
+		return valueExpr;
+	} /* else if (m_Token.Type == TokenType::FloatLit) {
+		ValueExpression* valueExpr = new ValueExpression();
+		valueExpr->Type = ValueExpressionType::FloatLiteral;
+		valueExpr->FloatingLiteral = std::stod(m_Token.Content);
+		return valueExpr;
+	} */ else if (m_Token.Type == TokenType::StringLit) {
+		ValueExpression* valueExpr = new ValueExpression();
+		valueExpr->Type = ValueExpressionType::StringLiteral;
+		valueExpr->StringLiteral = m_Token.Content;
+		return valueExpr;
+	} else {
+		// Handle other types of expressions (Unary/Binary operations, etc.)
+		// Logic to parse and handle unary/binary operations
+		// Example:
+		// Parse unary or binary operations
+		// Set the valueExpr fields accordingly
+		// This would involve checking the current token and performing appropriate parsing for operations
+	}
+
+	// Return null if expression type cannot be determined or handled
 	return nullptr;
+}
+
+bool Parser::IsOperator(const std::string &t) {
+	if (t == "+" || t == "-" || t == "*" || t == "/" || t == "=" || t == "==" || t == ">" || t == "<" || t == "!="
+		|| t == "<=" || t == ">=" || t == "+="|| t == "-="|| t == "*=" || t == "/=" || t == "%=" || t == "%"
+		|| t == "%=" || t == "||" || t == "|" || t == "&&" || t == "&" || t == "!" || t == "++" || t == "--"
+		|| t == "<<" || t == ">>" || t == "^" || t == "~" || t == ">>=" || t == "<<=" || t == "&=" || t == "|=")
+		// Check back later but should be most
+		return true;
+	return false;
+}
+
+bool Parser::IsDelimiter(const std::string &t) {
+	if (t == ";" || t == "," || t == "{" || t == "}" || t == "(" || t == ")" || t == "[" || t == "]" || t == ":")
+		return true;
+	return false;
 }
 
 ProgramNode::~ProgramNode() {

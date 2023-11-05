@@ -21,6 +21,52 @@ enum class ExpressionType {
     Else,
 };
 
+enum class ValueExpressionType {
+	FunctionCall,
+	Literal,
+	IntLiteral,
+	FloatLiteral,
+	StringLiteral,
+	Variable
+};
+
+enum class UnaryOperation {
+	Reference,
+	Dereference,
+	Increment,
+	Decrement,
+	Minus,
+	Not
+};
+
+enum class BinaryOperations {
+	Plus,
+	Minus,
+	Multiply,
+	Divide,
+	Modulo,
+	Equals,
+	NotEquals,
+	Less,
+	LessEquals,
+	Greater,
+	GreaterEquals,
+	And,
+	Or,
+	Assignment,
+	PlusAssignment,
+	MinusAssignment,
+	MultiplyAssignment,
+	DivideAssignment,
+	ModuloAssignment,
+	BitAnd,
+	BitOr,
+	BitShiftLeft,
+	BitShiftRight,
+	BitXor,
+	BitNot
+};
+
 struct DeclarationExpression {
 	explicit DeclarationExpression(std::string type, std::string identifier)
 		: Identifier(identifier), Type(type) {}
@@ -50,15 +96,21 @@ struct BlockExpression {
 	BlockExpression* Parent = nullptr;
 };
 
+struct ValueExpression;
+
 struct FunctionCallExpression {
     std::string Name;
-    std::vector<Expression> Arguments;
+    std::vector<ValueExpression*> Arguments;
 };
 
 struct ValueExpression {
 	~ValueExpression();
+	ValueExpressionType Type;
+	std::string DataType;
 	std::string StringLiteral;
+	std::string VariableName;
 	long ValueLiteral;
+	double FloatingLiteral;
 	FunctionCallExpression* FunctionCall;
 };
 
@@ -120,16 +172,18 @@ private:
 	bool ParseFunction();
 	bool ParseFunctionHeader();
 	bool ParseDeclaration();
-	bool ParseFunctionCall();
+	FunctionCallExpression* ParseFunctionCall();
 	bool ParseIfExpression();
 	bool ParseWhileExpression();
 	bool ParseReturnExpression();
-	ValueExpression* GetValueExpression(bool const = false);
+	ValueExpression* GetValueExpression();
 
 
 	static bool IsReserved(const std::string& t);
 	static bool IsDataType(const std::string& t);
 	bool IsFunctionName(const std::string& t);
+	bool IsOperator(const std::string& t);
+	bool IsDelimiter(const std::string& t);
 
 	void PrintBlockExpression(BlockExpression* expression, int indent);
 	void PrintExpression(Expression* expression, int indent);
