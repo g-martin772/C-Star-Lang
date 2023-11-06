@@ -39,6 +39,9 @@ CompilerResult Parser::Parse() {
 	bool parsing = true;
 	while(parsing) {
 		m_Token = m_Lexer.Consume();
+		if(m_Token.Type == TokenType::Invalid)
+			return ResultType::InvalidToken;
+		continue;
 
 		if(m_Token.Type == TokenType::Invalid) {
 			parsing = false;
@@ -185,6 +188,8 @@ bool Parser::IsFunctionName(const std::string &t) {
 
 bool Parser::ParseFunction() {
 	while (true) {
+		m_Token = m_Lexer.Consume();
+
 		// Block Open
 		if(m_Token.Type == TokenType::CurlyOpen) {
 			BlockExpression* newExpression = new BlockExpression(m_CurrentBlock);

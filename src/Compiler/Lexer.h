@@ -26,7 +26,7 @@ enum class TokenType {
     Less,
     Exclamation,
     Ampersand,
-    Pipe,
+    Pipe
 };
 
 struct Token {
@@ -40,13 +40,13 @@ public:
 
 	Token Consume();
 	Token Peek(int offset = 1);
-	Token At(int pos);
+	Token At(int pos, bool consume);
     static std::string TokenTypeToString(TokenType type);
 private:
 	std::string m_Input;
 	size_t m_Position;
 
-	void SkipWhitespace();
+	int SkipWhitespace();
 	std::string GetIdentifier();
 	std::string GetNumber();
 	std::string GetString();

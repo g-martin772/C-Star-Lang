@@ -2,48 +2,50 @@
 #include "Lexer.h"
 
 Token Lexer::Consume() {
-	Token t = At(m_Position);
+	Token t = At(m_Position, true);
 	m_Position++;
 	std::cout << "Token Type: " << Lexer::TokenTypeToString(t.Type) << ", Content: " << t.Content << std::endl;
 	return t;
 }
 
 Token Lexer::Peek(int offset) {
-	return At(m_Position + offset);
+	Token t = At(m_Position + offset, false);
+	return t;
 }
 
-void Lexer::SkipWhitespace() {
-	while (m_Position < m_Input.length() && std::isspace(m_Input[m_Position])) {
-		m_Position++;
+int Lexer::SkipWhitespace() {
+	size_t pos = m_Position;
+	while (pos < m_Input.length() && std::isspace(m_Input[pos])) {
+		pos++;
 	}
+	return pos - m_Position;
 }
 
 std::string Lexer::GetIdentifier() {
-	size_t start = m_Position;
-	while (m_Position < m_Input.length() && (std::isalpha(m_Input[m_Position]) || isdigit(m_Input[m_Position]))) {
-		m_Position++;
+	size_t start = m_Position, pos = m_Position;
+	while (pos < m_Input.length() && (std::isalpha(m_Input[pos]) || isdigit(m_Input[pos]))) {
+		pos++;
 	}
-	return m_Input.substr(start, m_Position - start);
+	return m_Input.substr(start, pos - start);
 }
 
 std::string Lexer::GetNumber() {
-	size_t start = m_Position;
-	while (m_Position < m_Input.length() && isdigit(m_Input[m_Position])) {
-		m_Position++;
+	size_t start = m_Position, pos = m_Position;
+	while (pos < m_Input.length() && isdigit(m_Input[pos])) {
+		pos++;
 	}
-	return m_Input.substr(start, m_Position - start);
+	return m_Input.substr(start, pos - start);
 }
 
 std::string Lexer::GetString() {
-	size_t start = m_Position + 1;
-	m_Position++;
-	while (m_Position < m_Input.length() && m_Input[m_Position] != '"') {
-		m_Position++;
+	size_t start = m_Position + 1, pos = m_Position + 1;
+	while (pos < m_Input.length() && m_Input[pos] != '"') {
+		pos++;
 	}
-	if (m_Position < m_Input.length() && m_Input[m_Position] == '"') {
-		m_Position++;
+	if (pos < m_Input.length() && m_Input[pos] == '"') {
+		pos++;
 	}
-	return m_Input.substr(start, m_Position - start - 1);
+	return m_Input.substr(start, pos - start - 1);
 }
 
 std::string Lexer::TokenTypeToString(TokenType type) {
@@ -75,32 +77,29 @@ std::string Lexer::TokenTypeToString(TokenType type) {
     }
 }
 
-Token Lexer::At(int pos) {
+Token Lexer::At(int pos, bool consume) {
 	Token token;
-
-	acquireChar:
 
 	if (pos >= m_Input.length()) {
 		token.Type = TokenType::Invalid;
 		return token;
 	}
 
+	pos += SkipWhitespace();
 	char currentChar = m_Input[pos];
-
-	if (std::isspace(currentChar)) {
-		SkipWhitespace();
-		goto acquireChar;
-	}
 
 	if (std::isalpha(currentChar)) {
 		token.Type = TokenType::Identifier;
 		token.Content = GetIdentifier();
+		m_Position += token.Content.length() * consume;
 	} else if (isdigit(currentChar)) {
 		token.Type = TokenType::IntLit;
 		token.Content = GetNumber();
+		m_Position += token.Content.length() * consume;
 	} else if (currentChar == '"') {
 		token.Type = TokenType::StringLit;
 		token.Content = GetString();
+		m_Position += (1 +token.Content.length()) * consume;
 	} else if (currentChar == ';') {
 		token.Type = TokenType::Semi;
 		token.Content = ";";
